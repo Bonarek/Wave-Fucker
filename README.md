@@ -3,6 +3,7 @@
 A plugin synthesizer built with the JUCE framework.
 
 ## Project Status:
+- [x] Naive synthesis method implementation
 - [x] Oscilloscope
 - [x] Spectrum Analyzer (FFT)
 - [ ] BLIT (Band-Limited Impulse Train) method implementation
