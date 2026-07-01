@@ -6,6 +6,9 @@ A plugin synthesizer built with the JUCE framework.
 - [x] Oscilloscope
 - [x] Spectrum Analyzer (FFT)
 - [ ] BLIT (Band-Limited Impulse Train) method implementation
+- [ ] DSF method implementation
+- [ ] PolyBLEEP method implementation
+- [ ] DPW method implementation
 
 ## Roadmap / To-Do:
 - [x] Add waveform selection (Saw/Tri/Sqr)
