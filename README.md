@@ -11,3 +11,5 @@ A plugin synthesizer built with the JUCE framework.
 - [x] Add waveform selection (Saw/Tri/Sqr)
 - [ ] Optimize buffer memory usage
 - [ ] Finalize UI branding and aesthetics
+- [ ] Add LPF (Cutoff)
+- [ ] Add Amplifier
