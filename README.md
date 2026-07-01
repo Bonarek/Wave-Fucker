@@ -1,11 +1,13 @@
 # WaveFucker by BonarSound
-Syntezator wtyczkowy zbudowany w JUCE.
 
-## Status prac:
-- [x] Oscyloskop
-- [x] Analizator widma (FFT)
-- [ ] Implementacja metody BLIT (Band-Limited Impulse Train)
+A plugin synthesizer built with the JUCE framework.
 
-## Plan działania:
-- [ ] Dodać wybór metody generowania fali (Saw/Tri/Sqr)
-- [ ] Zoptymalizować użycie pamięci bufora
+## Project Status:
+- [x] Oscilloscope
+- [x] Spectrum Analyzer (FFT)
+- [ ] BLIT (Band-Limited Impulse Train) method implementation
+
+## Roadmap / To-Do:
+- [x] Add waveform selection (Saw/Tri/Sqr)
+- [ ] Optimize buffer memory usage
+- [ ] Finalize UI branding and aesthetics
