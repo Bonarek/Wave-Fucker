@@ -40,10 +40,12 @@ private:
 
     juce::ToggleButton naiveButton{ "Naive" };
     juce::ToggleButton blitButton{ "Blit" };
-
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> naiveAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> blitAttachment;
     
+    juce::Slider cutoffSlider;
+    juce::Label cutoffLabel;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> cutoffAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFuckerAudioProcessorEditor)
 };

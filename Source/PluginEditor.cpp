@@ -31,19 +31,30 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     addAndMakeVisible(naiveButton);
     addAndMakeVisible(blitButton);
 
-    auto updateWave = [this](float value) {
-        audioProcessor.getWaveAPVTS().getParameter("WAVE_TYPE")->setValueNotifyingHost(value);
+    auto updateWave = [this](int value) {
+        if(auto * param = audioProcessor.apvts.getParameter("WAVE_TYPE"))
+            param->setValueNotifyingHost(param->convertTo0to1(value)); 
     };
-    sawButton.onClick = [updateWave] { updateWave(0.0f); }; // 0
-    triButton.onClick = [updateWave] { updateWave(0.5f); }; // 1
-    sqrButton.onClick = [updateWave] { updateWave(1.0f); }; // 2
+    sawButton.onClick = [updateWave] { updateWave(0); }; // 0
+    triButton.onClick = [updateWave] { updateWave(1); }; // 1
+    sqrButton.onClick = [updateWave] { updateWave(2); }; // 2
 
-    auto updateMethod = [this](float value) {
-        audioProcessor.getMethocAVPTS().getParameter("METHOD_TYPE")->setValueNotifyingHost(value);
+    auto updateMethod = [this](int value) {
+        if (auto* param = audioProcessor.apvts.getParameter("METHOD_TYPE"))
+            param->setValueNotifyingHost(param->convertTo0to1(value));
     };
-    naiveButton.onClick = [updateMethod] { updateMethod(0.0f); };
-    blitButton.onClick = [updateMethod] { updateMethod(1.0f); };
+    naiveButton.onClick = [updateMethod] { updateMethod(0); };
+    blitButton.onClick = [updateMethod] { updateMethod(1); };
 
+    cutoffSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    cutoffSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
+    addAndMakeVisible(cutoffSlider);
+    cutoffAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.apvts, "CUTOFF", cutoffSlider
+        );
+    cutoffLabel.setText("Filter Cutoff", juce::dontSendNotification);
+    cutoffLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(cutoffLabel);
     startTimer(30);
 }
 
@@ -63,6 +74,8 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawText("WaveFucker Synth ", getLocalBounds().removeFromTop(50), juce::Justification::centred);
     g.drawText("Wave ", 100, 120, 150, 30, juce::Justification::centredLeft);
     g.drawText("Method", 300, 120, 150, 30, juce::Justification::centredLeft);
+
+    g.drawText("Cutoff", 500, 120, 150, 30, juce::Justification::centred);
 
     juce::Rectangle<float> area(0.0f, 400.0f, 800.0f, 200.0f);
     auto leftArea = area.removeFromLeft(400.0f);
@@ -194,5 +207,9 @@ void WaveFuckerAudioProcessorEditor::resized()
 
     naiveButton.setBounds(300, 150, 150, 30);
     blitButton.setBounds(300, 180, 150, 30); 
+
+    cutoffSlider.setBounds(500, 150, 100, 100);
+    cutoffLabel.setBounds(0, 0, 0, 0);
+
 }
     

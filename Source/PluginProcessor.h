@@ -18,10 +18,13 @@
 class WaveFuckerAudioProcessor  : public juce::AudioProcessor
 {
 public:
+    //Cutoff
+    juce::dsp::ProcessorChain<juce::dsp::LadderFilter<float>> dspChain;
 
-    //wave user choice
-    juce::AudioProcessorValueTreeState& getWaveAPVTS() { return apvtsWave; };
-    juce::AudioProcessorValueTreeState& getMethocAVPTS() { return apvtsMethod; };
+    
+    juce::AudioProcessorValueTreeState apvts;
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
     //==============================================================================
     WaveFuckerAudioProcessor();
     ~WaveFuckerAudioProcessor() override;
@@ -63,17 +66,16 @@ public:
         float fftMaginitude[512] = { 0.0f }; //wyniki
 private:
     //==============================================================================
-    //check for midi notes 
+        //check for midi notes 
     juce::MidiKeyboardState midiState;
-    
+
     //param for synth   
-    float SampleRate = 48000.0f;
+
     float Frequency = 440.0f;
     float Phase = 0.0f;
-    int activeNumNote = 0;
-    juce::AudioProcessorValueTreeState apvtsWave;
-    juce::AudioProcessorValueTreeState apvtsMethod;
-    
+
+
+
     bool isPlaying = false;
     bool notesActive[128] = { false };
     // FFT
@@ -82,9 +84,27 @@ private:
     float fftData[2048] = { 0.0f }; //time buffor
     
     int fftIndex = 0;
-    bool nextFFTReady = false;
 
 
+
+    float integrator = 0.0f;
+    float integrator2 = 0.0f;
+    const float R = 0.995f;
+
+    float getBlit(float phase, float P, float M)
+    {
+        float denom = sinf(juce::MathConstants<float>::pi * phase);
+        if (fabsf(denom) < 1e-7f) return (M / P);
+        return (sinf(M * juce::MathConstants<float>::pi * phase)) / (P * denom);
+    }
+    //DC block
+    float dcBlockerState = 0.0f;
+    float dcBlocker(float input)
+    {
+        float output = input - dcBlockerState;
+        dcBlockerState = input - 0.9995f * output; 
+        return output;
+    }
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFuckerAudioProcessor)
 };
