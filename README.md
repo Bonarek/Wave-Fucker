@@ -6,7 +6,7 @@ A plugin synthesizer built with the JUCE framework.
 - [x] Naive synthesis method implementation
 - [x] Oscilloscope
 - [x] Spectrum Analyzer (FFT)
-- [ ] BLIT (Band-Limited Impulse Train) method implementation
+- [x] BLIT (Band-Limited Impulse Train) method implementation
 - [ ] DSF method implementation
 - [ ] PolyBLEEP method implementation
 - [ ] DPW method implementation
@@ -15,5 +15,8 @@ A plugin synthesizer built with the JUCE framework.
 - [x] Add waveform selection (Saw/Tri/Sqr)
 - [ ] Optimize buffer memory usage
 - [ ] Finalize UI branding and aesthetics
-- [ ] Add LPF (Cutoff)
+- [x] Add LPF (Cutoff)
 - [ ] Add Amplifier
+- [ ] Add LFO (Low Frewuency Oscilator)
+- [ ] Add ADSR
+- [ ] Add Pulse Width in Oscilator
