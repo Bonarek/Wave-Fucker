@@ -18,5 +18,7 @@ A plugin synthesizer built with the JUCE framework.
 - [x] Add LPF (Cutoff)
 - [ ] Add Amplifier
 - [ ] Add LFO (Low Frewuency Oscilator)
-- [ ] Add ADSR
+- [x] Add ADSR Amplitude
+- [ ] Add ADSR Cutoff
+- [ ] Add Glide 
 - [ ] Add Pulse Width in Oscilator
