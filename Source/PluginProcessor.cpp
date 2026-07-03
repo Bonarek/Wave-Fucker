@@ -22,15 +22,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
     juce::NormalisableRange<float> cutoffRange(20.0f, 20000.0f, 1.0f);
 
     cutoffRange.setSkewForCentre(1000.0f);
+    layout.add(std::make_unique<juce::AudioParameterFloat>("CUTOFF", "Cutoff", cutoffRange, 20000.0f));
+   
+    layout.add(std::make_unique<juce::AudioParameterFloat>("RESONANCE", "Resonance", 0.0f, 1.0f, 0.0f));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LFO_FREQ", "LFO Freq", 0.1f, 20.0f, 1.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LFO_DEPTH", "LFO Depth", 0.0f, 1.0f, 0.0f));
 
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>(
-        "CUTOFF",       
-        "Cutoff",      
-        cutoffRange,    
-        20000.0f        
-        ));
-
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ATTACK", "Attack", 0.01f, 5.0f, 0.1f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("DECAY", "Decay", 0.1f, 5.0f, 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("SUSTAIN", "Sustain", 0.0f, 1.0f, 0.8f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("RELEASE", "Release", 0.01f, 5.0f, 0.5f));
     return layout;
 }
 //==============================================================================
@@ -130,8 +132,9 @@ void WaveFuckerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     dspChain.get<0>().setMode(juce::dsp::LadderFilterMode::LPF12);
     dspChain.prepare(spec);
 
-    std::fill(std::begin(notesActive), std::end(notesActive), false);
-    isPlaying = false;
+    adsr.setSampleRate(sampleRate);
+    activeNotes.clear();
+
     Phase = 0.0f;
     integrator = 0.0f;
     integrator2 = 0.0f;
@@ -181,40 +184,60 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     int waveType = (int)*apvts.getRawParameterValue("WAVE_TYPE");
     int methodType = (int)*apvts.getRawParameterValue("METHOD_TYPE");
     float cutoffFreq = *apvts.getRawParameterValue("CUTOFF");
+    float ressonanceValue = *apvts.getRawParameterValue("RESONANCE");
+
     
-    DBG("Wave: " << waveType << " | Method: " << methodType );
+    adsrParameters.attack = *apvts.getRawParameterValue("ATTACK");
+    adsrParameters.decay = *apvts.getRawParameterValue("DECAY");
+    adsrParameters.sustain = *apvts.getRawParameterValue("SUSTAIN");
+    adsrParameters.release = *apvts.getRawParameterValue("RELEASE");
+    adsr.setParameters(adsrParameters);
+    
   
     for (const auto metadata : midiMessages)
     {
         auto msg = metadata.getMessage();
         if (msg.isNoteOn())
         {
-            int note = msg.getNoteNumber();
-            notesActive[note] = true;
-            Frequency = juce::MidiMessage::getMidiNoteInHertz(msg.getNoteNumber());
-            isPlaying = true;
-            Phase = 0.0f;
-            integrator = 0.0f;
-            integrator2 = 0.0f;
-            dcBlockerState = 0.0f;
+            int noteNumber = msg.getNoteNumber();
+            for (auto it = activeNotes.begin(); it != activeNotes.end(); ++it)
+            {
+                if (*it == noteNumber) { activeNotes.erase(it); break; }
+            }
+            activeNotes.push_back(noteNumber);
+
+            Frequency = juce::MidiMessage::getMidiNoteInHertz(noteNumber);
+            if (activeNotes.size() == 1)
+            {
+
+                Phase = 0.0f;
+                integrator = 0.0f;
+                integrator2 = 0.0f;
+                dcBlockerState = 0.0f;
+            }
+
+            adsr.noteOn();
             
         }
         else if (msg.isNoteOff())
         {
-            notesActive[msg.getNoteNumber()] = false;
+            int noteNumber = msg.getNoteNumber();
+            for (auto it = activeNotes.begin(); it != activeNotes.end(); ++it)
+            {
+                if (*it == noteNumber) { activeNotes.erase(it); break; }
+            }
+            if (activeNotes.empty())
+            {
+                adsr.noteOff();
+            }
+            else
+            {
+                int remainingNote = activeNotes.back();
+                Frequency = juce::MidiMessage::getMidiNoteInHertz(remainingNote);
+            }
         }
     }
 
-    bool anyNoteActive = false;
-    for (bool active : notesActive)
-    {
-        if (active)
-        {
-            anyNoteActive = true;
-            break;
-        }
-    }
-    isPlaying = anyNoteActive;
 
     float phaseDelta = (Frequency > 0.0f) ? (Frequency / getSampleRate()) : 0.0f;
     float P = getSampleRate() / Frequency;
@@ -223,7 +246,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     {
 
         float sampleValue = 0.0f;
-        if (isPlaying)
+        if (adsr.isActive())
         {
             float b1 = getBlit(Phase, P, M);
             float b2 = getBlit(fmodf(Phase + 0.5f, 1.0f), P, M);
@@ -282,6 +305,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
             }
             sampleValue *= 0.2f;
+            sampleValue *= adsr.getNextSample();
 
             Phase += phaseDelta;
 
@@ -302,13 +326,21 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             buffer.setSample(chanel, sample, sampleValue);
         }
     }
-    float safeCutoff = juce::jmax(20.0f, cutoffFreq);
+    //LFO
+    float lfoRate = *apvts.getRawParameterValue("LFO_FREQ");
+    float lfoDepth = *apvts.getRawParameterValue("LFO_DEPTH");
+    lfoPhase += lfoRate * (buffer.getNumSamples() / getSampleRate());
+    if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
+    float lfoValue = std::sin(lfoPhase * juce::MathConstants<float>::twoPi);
+    float modulatedCutoff = cutoffFreq * (1.0f + (lfoValue * lfoDepth * 0.9f));
+    float safeCutoff = juce::jlimit(20.0f, 20000.0f, modulatedCutoff);
+
     dspChain.get<0>().setCutoffFrequencyHz(safeCutoff);
+    dspChain.get<0>().setResonance(juce::jlimit(0.0f, 1.0f, ressonanceValue));
 
     juce::dsp::AudioBlock<float> block(buffer);
     juce::dsp::ProcessContextReplacing<float> context(block);
     dspChain.process(context);
-
 
     auto* channelData = buffer.getReadPointer(0);
     for (int sample = 0; sample<buffer.getNumSamples(); ++sample)
@@ -360,15 +392,21 @@ juce::AudioProcessorEditor* WaveFuckerAudioProcessor::createEditor()
 //==============================================================================
 void WaveFuckerAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData); 
 }
 
 void WaveFuckerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    if (xmlState.get() != nullptr)
+    {
+        if (xmlState->hasTagName(apvts.state.getType()))
+        {
+            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+        }
+    }
 }
 
 //==============================================================================

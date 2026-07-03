@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
+#include <vector>
 
 
 //==============================================================================
@@ -74,10 +75,11 @@ private:
     float Frequency = 440.0f;
     float Phase = 0.0f;
 
+    float lfoPhase = 0.0f;
 
-
-    bool isPlaying = false;
-    bool notesActive[128] = { false };
+    juce::ADSR adsr;
+    juce::ADSR::Parameters adsrParameters;
+    std::vector<int> activeNotes;
     // FFT
     juce::dsp::FFT fft{ 10 }; //window size 2^10 = 1024
     juce::dsp::WindowingFunction<float> window{ 1024, juce::dsp::WindowingFunction<float>::blackmanHarris, true };
