@@ -14,11 +14,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    // Twoje STARE parametry - identyfikatory ("WAVE_TYPE", "METHOD_TYPE") zostaj¹ takie same!
+    // Twoje STARE parametry - identyfikatory ("WAVE_TYPE", "METHOD_TYPE") zostajÂ¹ takie same!
     layout.add(std::make_unique<juce::AudioParameterInt>("WAVE_TYPE", "Wave Type", 0, 2, 0));
     layout.add(std::make_unique<juce::AudioParameterInt>("METHOD_TYPE", "Method Type", 0, 1, 0));
 
-    // Twój NOWY parametr - Cutoff do filtra
+    // TwÃ³j NOWY parametr - Cutoff do filtra
     juce::NormalisableRange<float> cutoffRange(20.0f, 20000.0f, 1.0f);
 
     cutoffRange.setSkewForCentre(1000.0f);
@@ -33,6 +33,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
     layout.add(std::make_unique<juce::AudioParameterFloat>("DECAY", "Decay", 0.1f, 5.0f, 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("SUSTAIN", "Sustain", 0.0f, 1.0f, 0.8f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("RELEASE", "Release", 0.01f, 5.0f, 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("GLIDE", "Glide", 0.0f, 1.0f, 0.0f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("F_ATTACK", "F. Attack", 0.01f, 5.0f, 0.1f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("F_DECAY", "F. Decay", 0.1f, 5.0f, 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("F_SUSTAIN", "F. Sustain", 0.0f, 1.0f, 0.8f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("F_RELEASE", "F. Release", 0.01f, 5.0f, 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ENVELOPE", "Envelope", -1.0f, 1.0f, 0.5f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("VOLUME", "Master Vol", 0.0f, 1.0f, 0.8f));
+
     return layout;
 }
 //==============================================================================
@@ -133,7 +142,10 @@ void WaveFuckerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     dspChain.prepare(spec);
 
     adsr.setSampleRate(sampleRate);
+    filterAdsr.setSampleRate(sampleRate);
     activeNotes.clear();
+
+
 
     Phase = 0.0f;
     integrator = 0.0f;
@@ -192,6 +204,12 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     adsrParameters.sustain = *apvts.getRawParameterValue("SUSTAIN");
     adsrParameters.release = *apvts.getRawParameterValue("RELEASE");
     adsr.setParameters(adsrParameters);
+
+    filterAdrsParams.attack = *apvts.getRawParameterValue("F_ATTACK");
+    filterAdrsParams.decay = *apvts.getRawParameterValue("F_DECAY");
+    filterAdrsParams.sustain = *apvts.getRawParameterValue("F_SUSTAIN");
+    filterAdrsParams.release = *apvts.getRawParameterValue("F_RELEASE");
+    filterAdsr.setParameters(filterAdrsParams);
     
   
     for (const auto metadata : midiMessages)
@@ -217,6 +235,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             }
 
             adsr.noteOn();
+            filterAdsr.noteOn();
             
         }
         else if (msg.isNoteOff())
@@ -229,6 +248,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             if (activeNotes.empty())
             {
                 adsr.noteOff();
+                filterAdsr.noteOff();
             }
             else
             {
@@ -239,15 +259,20 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     }
 
 
-    float phaseDelta = (Frequency > 0.0f) ? (Frequency / getSampleRate()) : 0.0f;
-    float P = getSampleRate() / Frequency;
-    float M = 2.0f * floorf(P / 2.0f) + 1.0f;
+    float currentFilterEnv = 0.0f;
+    float glideTime = *apvts.getRawParameterValue("GLIDE");
+    float glideCoeff = (glideTime > 0.001f) ? std::exp(-1.0f / (glideTime * getSampleRate())) : 0.0f;
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
+        currentFrequency = glideCoeff * currentFrequency + (1.0f - glideCoeff) * Frequency;
+        float phaseDelta = (currentFrequency > 0.0f) ? (currentFrequency / getSampleRate()) : 0.0f;
+        float P = getSampleRate() / currentFrequency;
+        float M = 2.0f * floorf(P / 2.0f) + 1.0f;
 
         float sampleValue = 0.0f;
         if (adsr.isActive())
         {
+
             float b1 = getBlit(Phase, P, M);
             float b2 = getBlit(fmodf(Phase + 0.5f, 1.0f), P, M);
             //user choice
@@ -306,6 +331,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             }
             sampleValue *= 0.2f;
             sampleValue *= adsr.getNextSample();
+            currentFilterEnv = filterAdsr.getNextSample();
 
             Phase += phaseDelta;
 
@@ -329,10 +355,13 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     //LFO
     float lfoRate = *apvts.getRawParameterValue("LFO_FREQ");
     float lfoDepth = *apvts.getRawParameterValue("LFO_DEPTH");
+
+    float fDepth = *apvts.getRawParameterValue("ENVELOPE");
     lfoPhase += lfoRate * (buffer.getNumSamples() / getSampleRate());
     if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
     float lfoValue = std::sin(lfoPhase * juce::MathConstants<float>::twoPi);
     float modulatedCutoff = cutoffFreq * (1.0f + (lfoValue * lfoDepth * 0.9f));
+    modulatedCutoff += (currentFilterEnv * fDepth * 10000.0f);
     float safeCutoff = juce::jlimit(20.0f, 20000.0f, modulatedCutoff);
 
     dspChain.get<0>().setCutoffFrequencyHz(safeCutoff);
@@ -374,6 +403,11 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         }
         
     }
+    float masterVol = *apvts.getRawParameterValue("VOLUME");
+    buffer.applyGain(masterVol);
+
+    leftChannelLevel = buffer.getMagnitude(0, 0, buffer.getNumSamples());
+    rightChannelLevel = buffer.getMagnitude(1, 0, buffer.getNumSamples());
 
 }
 

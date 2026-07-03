@@ -19,6 +19,9 @@
 class WaveFuckerAudioProcessor  : public juce::AudioProcessor
 {
 public:
+
+    float leftChannelLevel = 0.0f;
+    float rightChannelLevel = 0.0f;
     //Cutoff
     juce::dsp::ProcessorChain<juce::dsp::LadderFilter<float>> dspChain;
 
@@ -73,12 +76,16 @@ private:
     //param for synth   
 
     float Frequency = 440.0f;
+    float currentFrequency = 440.0f;
     float Phase = 0.0f;
 
     float lfoPhase = 0.0f;
 
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParameters;
+
+    juce::ADSR filterAdsr;
+    juce::ADSR::Parameters filterAdrsParams;
     std::vector<int> activeNotes;
     // FFT
     juce::dsp::FFT fft{ 10 }; //window size 2^10 = 1024
@@ -107,6 +114,7 @@ private:
         dcBlockerState = input - 0.9995f * output; 
         return output;
     }
+
 
 JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFuckerAudioProcessor)
 };

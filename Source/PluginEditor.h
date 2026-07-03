@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "PeakMeter.h"
 
 //==============================================================================
 /**
@@ -59,5 +60,16 @@ private:
 
     juce::Slider attackSlider, decaySlider, sustainSlider, releaseSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attAttach, decAttach, susAttach, relAttach;
+    
+    juce::Slider glideSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> glideAttachment;
+
+    juce::Slider fAttackSlider, fDecaySlider, fSustainSlider, fReleaseSlider, fDepthSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> fAttAttach, fDecAttach, fSusAttach, fRelAttach, fDepAttach;
+    
+    juce::Slider volSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttach;
+
+    PeakMeter peakMeter;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFuckerAudioProcessorEditor)
 };

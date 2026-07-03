@@ -11,15 +11,16 @@
 
 //==============================================================================
 WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+    : AudioProcessorEditor (&p), audioProcessor (p), peakMeter(p)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (800, 600);
+    addAndMakeVisible(peakMeter);
+
     sawButton.setRadioGroupId(1);
     triButton.setRadioGroupId(1);
     sqrButton.setRadioGroupId(1);
-
     addAndMakeVisible(sqrButton);
     addAndMakeVisible(sawButton);
     addAndMakeVisible(triButton);
@@ -27,7 +28,6 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
     naiveButton.setRadioGroupId(2);
     blitButton.setRadioGroupId(2);
-
     addAndMakeVisible(naiveButton);
     addAndMakeVisible(blitButton);
 
@@ -47,39 +47,6 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     naiveButton.onClick = [updateMethod] { updateMethod(0); };
     blitButton.onClick = [updateMethod] { updateMethod(1); };
 
-    cutoffSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    cutoffSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(cutoffSlider);
-    cutoffAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        audioProcessor.apvts, "CUTOFF", cutoffSlider
-        );
-    cutoffLabel.setText("Filter Cutoff", juce::dontSendNotification);
-    cutoffLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(cutoffLabel);
-
-
-    resSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    resSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(resSlider);
-    resonanceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        audioProcessor.apvts, "RESONANCE", resSlider
-        );
-
-    lfoFreqSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    lfoFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(lfoFreqSlider);
-    lfoFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        audioProcessor.apvts, "LFO_FREQ", lfoFreqSlider
-        );
-
-
-    lfoDepthSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    lfoDepthSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(lfoDepthSlider);
-
-    lfoDepthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        audioProcessor.apvts, "LFO_DEPTH", lfoDepthSlider
-        );
     auto setupSlider = [this](juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attach, const juce::String& paramID) {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
@@ -87,10 +54,27 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
         attach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, paramID, slider);
     };
 
+    setupSlider(cutoffSlider, cutoffAttachment, "CUTOFF");
+    setupSlider(resSlider, resonanceAttachment, "RESONANCE");
+    setupSlider(lfoFreqSlider, lfoFreqAttachment, "LFO_FREQ");
+    setupSlider(lfoDepthSlider, lfoDepthAttachment, "LFO_DEPTH");
+    setupSlider(glideSlider, glideAttachment, "GLIDE");
+
     setupSlider(attackSlider, attAttach, "ATTACK");
     setupSlider(decaySlider, decAttach, "DECAY");
     setupSlider(sustainSlider, susAttach, "SUSTAIN");
     setupSlider(releaseSlider, relAttach, "RELEASE");
+
+    setupSlider(fAttackSlider, fAttAttach, "F_ATTACK");
+    setupSlider(fDecaySlider, fDecAttach, "F_DECAY");
+    setupSlider(fSustainSlider, fSusAttach, "F_SUSTAIN");
+    setupSlider(fReleaseSlider, fRelAttach, "F_RELEASE");
+    setupSlider(fDepthSlider, fDepAttach, "ENVELOPE");
+    volSlider.setSliderStyle(juce::Slider::LinearVertical);
+
+    volSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0); 
+    addAndMakeVisible(volSlider);
+    volAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, "VOLUME", volSlider);
 
     int currentWave = (int)*audioProcessor.apvts.getRawParameterValue("WAVE_TYPE");
     int currentMethod = (int)*audioProcessor.apvts.getRawParameterValue("METHOD_TYPE");
@@ -113,24 +97,33 @@ WaveFuckerAudioProcessorEditor::~WaveFuckerAudioProcessorEditor()
 //==============================================================================
 void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
     g.setColour(juce::Colours::white);
-    g.setFont(juce::FontOptions(15.0f));
-    g.drawText("WaveFucker Synth ", getLocalBounds().removeFromTop(50), juce::Justification::centred);
-    g.drawText("Wave ", 100, 120, 150, 30, juce::Justification::centredLeft);
-    g.drawText("Method", 300, 120, 150, 30, juce::Justification::centredLeft);
+    g.setFont(15.0f);
 
-    g.drawText("Cutoff", 500, 120, 100, 30, juce::Justification::centred);
-    g.drawText("Resonance", 620, 120, 100, 30, juce::Justification::centred);
-    g.drawText("LFO Rate", 30, 280, 100, 30, juce::Justification::centred);
-    g.drawText("LFO Depth", 150, 280, 100, 30, juce::Justification::centred);
 
-    g.drawText("Attack", 300, 280, 80, 30, juce::Justification::centred);
-    g.drawText("Decay", 390, 280, 80, 30, juce::Justification::centred);
-    g.drawText("Sustain", 480, 280, 80, 30, juce::Justification::centred);
-    g.drawText("Release", 570, 280, 80, 30, juce::Justification::centred);
+    g.drawText("WaveFucker Synth", 0, 10, 800, 30, juce::Justification::centred);
+
+
+    g.drawText("Cutoff", 260, 80, 70, 30, juce::Justification::centred);
+    g.drawText("Reson", 340, 80, 70, 30, juce::Justification::centred);
+    g.drawText("LFO F", 460, 80, 70, 30, juce::Justification::centred);
+    g.drawText("LFO D", 540, 80, 70, 30, juce::Justification::centred);
+    g.drawText("Glide", 680, 80, 70, 30, juce::Justification::centred);
+
+
+    g.drawText("Amp A", 40, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Amp D", 120, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Amp S", 200, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Amp R", 280, 220, 70, 30, juce::Justification::centred);
+
+
+    g.drawText("Filt A", 400, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Filt D", 480, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Filt S", 560, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Filt R", 640, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Env Dep", 720, 220, 70, 30, juce::Justification::centred);
+    g.drawText("Volume", 730, 120, 60, 30, juce::Justification::centred);
 
     juce::Rectangle<float> area(0.0f, 400.0f, 800.0f, 200.0f);
     auto leftArea = area.removeFromLeft(400.0f);
@@ -256,23 +249,31 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
 
 void WaveFuckerAudioProcessorEditor::resized()
 {
-    sawButton.setBounds(100, 150, 150, 30);
-    triButton.setBounds(100, 180, 150, 30);
-    sqrButton.setBounds(100, 210, 150, 30);
+    sawButton.setBounds(40, 100, 100, 25);
+    triButton.setBounds(40, 130, 100, 25);
+    sqrButton.setBounds(40, 160, 100, 25);
 
-    naiveButton.setBounds(300, 150, 150, 30);
-    blitButton.setBounds(300, 180, 150, 30); 
+    naiveButton.setBounds(150, 100, 100, 25);
+    blitButton.setBounds(150, 130, 100, 25);
 
-    cutoffSlider.setBounds(500, 150, 100, 100);
-    cutoffLabel.setBounds(0, 0, 0, 0);
+    cutoffSlider.setBounds(260, 110, 70, 70);
+    resSlider.setBounds(340, 110, 70, 70);
+    lfoFreqSlider.setBounds(460, 110, 70, 70);
+    lfoDepthSlider.setBounds(540, 110, 70, 70);
+    glideSlider.setBounds(680, 110, 70, 70);
 
-    resSlider.setBounds(620, 150, 100, 100);
-    lfoFreqSlider.setBounds(30, 310, 100, 100);
-    lfoDepthSlider.setBounds(150, 310, 100, 100);
+    attackSlider.setBounds(40, 250, 70, 70);
+    decaySlider.setBounds(120, 250, 70, 70);
+    sustainSlider.setBounds(200, 250, 70, 70);
+    releaseSlider.setBounds(280, 250, 70, 70);
 
-    attackSlider.setBounds(300, 310, 80, 80);
-    decaySlider.setBounds(390, 310, 80, 80);
-    sustainSlider.setBounds(480, 310, 80, 80);
-    releaseSlider.setBounds(570, 310, 80, 80);
+    fAttackSlider.setBounds(400, 250, 70, 70);
+    fDecaySlider.setBounds(480, 250, 70, 70);
+    fSustainSlider.setBounds(560, 250, 70, 70);
+    fReleaseSlider.setBounds(640, 250, 70, 70);
+    fDepthSlider.setBounds(720, 250, 70, 70);
+
+    volSlider.setBounds(730, 150, 60, 60);
+    peakMeter.setBounds(745, 50, 30, 60);
 }
     

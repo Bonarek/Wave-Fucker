@@ -5,6 +5,7 @@
               pluginManufacturer="BonarSound">
   <MAINGROUP id="nnL0bV" name="WaveFucker">
     <GROUP id="{B5ADA7E8-4A8E-9543-105D-E97927E9D478}" name="Source">
+      <FILE id="MYRIUO" name="PeakMeter.h" compile="0" resource="0" file="Source/PeakMeter.h"/>
       <FILE id="zhZ9wx" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="ONMQqh" name="PluginProcessor.h" compile="0" resource="0"
