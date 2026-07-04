@@ -28,8 +28,14 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
     naiveButton.setRadioGroupId(2);
     blitButton.setRadioGroupId(2);
+    dsfButton.setRadioGroupId(2);
+    polyBlepButton.setRadioGroupId(2);
+    dpwButton.setRadioGroupId(2);
     addAndMakeVisible(naiveButton);
     addAndMakeVisible(blitButton);
+    addAndMakeVisible(dsfButton);
+    addAndMakeVisible(polyBlepButton);
+    addAndMakeVisible(dpwButton);
 
     auto updateWave = [this](int value) {
         if(auto * param = audioProcessor.apvts.getParameter("WAVE_TYPE"))
@@ -46,6 +52,9 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
     naiveButton.onClick = [updateMethod] { updateMethod(0); };
     blitButton.onClick = [updateMethod] { updateMethod(1); };
+    dsfButton.onClick = [updateMethod] { updateMethod(2); };
+    polyBlepButton.onClick = [updateMethod] { updateMethod(3); };
+    dpwButton.onClick = [updateMethod] {updateMethod(4); };
 
     auto setupSlider = [this](juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attach, const juce::String& paramID) {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
@@ -70,6 +79,8 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     setupSlider(fSustainSlider, fSusAttach, "F_SUSTAIN");
     setupSlider(fReleaseSlider, fRelAttach, "F_RELEASE");
     setupSlider(fDepthSlider, fDepAttach, "ENVELOPE");
+    setupSlider(noiseSlider, noiseAttachment, "NOISE");
+
     volSlider.setSliderStyle(juce::Slider::LinearVertical);
 
     volSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0); 
@@ -85,6 +96,9 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
     if (currentMethod == 0) naiveButton.setToggleState(true, juce::dontSendNotification);
     else if (currentMethod == 1) blitButton.setToggleState(true, juce::dontSendNotification);
+    else if (currentMethod == 2) dsfButton.setToggleState(true, juce::dontSendNotification);
+    else if (currentMethod == 3) polyBlepButton.setToggleState(true, juce::dontSendNotification);
+    else if (currentMethod == 4) dpwButton.setToggleState(true, juce::dontSendNotification);
 
     startTimer(30);
 }
@@ -123,7 +137,9 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawText("Filt S", 560, 220, 70, 30, juce::Justification::centred);
     g.drawText("Filt R", 640, 220, 70, 30, juce::Justification::centred);
     g.drawText("Env Dep", 720, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Volume", 730, 120, 60, 30, juce::Justification::centred);
+    g.drawText("Volume", 730, 120, 60, 30, juce::Justification::centred);   
+
+    g.drawText("Noise", 680, 220, 70, 30, juce::Justification::centred);
 
     juce::Rectangle<float> area(0.0f, 400.0f, 800.0f, 200.0f);
     auto leftArea = area.removeFromLeft(400.0f);
@@ -255,6 +271,9 @@ void WaveFuckerAudioProcessorEditor::resized()
 
     naiveButton.setBounds(150, 100, 100, 25);
     blitButton.setBounds(150, 130, 100, 25);
+    dsfButton.setBounds(150, 160, 100, 25);
+    polyBlepButton.setBounds(150, 190, 100, 25);
+    dpwButton.setBounds(150, 220, 100, 25);
 
     cutoffSlider.setBounds(260, 110, 70, 70);
     resSlider.setBounds(340, 110, 70, 70);
@@ -275,5 +294,6 @@ void WaveFuckerAudioProcessorEditor::resized()
 
     volSlider.setBounds(730, 150, 60, 60);
     peakMeter.setBounds(745, 50, 30, 60);
+    noiseSlider.setBounds(680, 250, 70, 70);
 }
     

@@ -100,12 +100,50 @@ private:
     float integrator2 = 0.0f;
     const float R = 0.995f;
 
+
     float getBlit(float phase, float P, float M)
     {
-        float denom = sinf(juce::MathConstants<float>::pi * phase);
-        if (fabsf(denom) < 1e-7f) return (M / P);
-        return (sinf(M * juce::MathConstants<float>::pi * phase)) / (P * denom);
+        float denom = std::sin(juce::MathConstants<float>::pi * phase);
+        if (std::abs(denom) < 1e-7f) return (M / P);
+        return std::sin(M * juce::MathConstants<float>::pi * phase) / (P * denom);
     }
+    float getDsf(float phase, float N)
+    {
+        float theta = phase * juce::MathConstants<float>::twoPi;
+        float den = 2.0f * std::sin(0.5f * theta);
+        if (std::abs(den) < 1e-8f) return N;
+        return std::sin((N + 0.5f) * theta) / den - 0.5f;
+    }
+    float getBlep(float p, float dt)
+    {
+        if (p < dt)
+        {
+            p /= dt;
+            return -p * p + 2.0f * p - 1.0f;
+        }
+        else if (p > 1.0f - dt) 
+        {
+            p = (p - 1.0f) / dt;
+            return p * p + 2.0f * p + 1.0f;
+        }
+        return 0.0f;
+    }
+    float getBlamp(float p, float dt)
+    {
+        if (p < dt) {
+            p /= dt;
+            return -p * p * p / 6.0f + p * p / 2.0f - p / 2.0f + 1.0f / 6.0f;
+        }
+        else if (p > 1.0f - dt) {
+            p = (p - 1.0f) / dt;
+            return p * p * p / 6.0f + 1.0f / 6.0f;
+        }
+        return 0.0f;
+    }
+
+
+    float dpwState = 0.0f;
+
     //DC block
     float dcBlockerState = 0.0f;
     float dcBlocker(float input)

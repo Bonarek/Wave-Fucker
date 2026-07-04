@@ -41,8 +41,14 @@ private:
 
     juce::ToggleButton naiveButton{ "Naive" };
     juce::ToggleButton blitButton{ "Blit" };
+    juce::ToggleButton dsfButton{ "DSF" };
+    juce::ToggleButton polyBlepButton{ "PolyBLEP" };
+    juce::ToggleButton dpwButton{ "DPW" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> naiveAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> blitAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> dsfAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> polyBlepAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> dpwAttachment;
     
     juce::Slider cutoffSlider;
     juce::Label cutoffLabel;
@@ -71,5 +77,9 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttach;
 
     PeakMeter peakMeter;
+
+    juce::Slider noiseSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> noiseAttachment;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFuckerAudioProcessorEditor)
 };

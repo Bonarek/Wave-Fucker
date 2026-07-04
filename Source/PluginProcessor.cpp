@@ -14,11 +14,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    // Twoje STARE parametry - identyfikatory ("WAVE_TYPE", "METHOD_TYPE") zostaj¹ takie same!
     layout.add(std::make_unique<juce::AudioParameterInt>("WAVE_TYPE", "Wave Type", 0, 2, 0));
-    layout.add(std::make_unique<juce::AudioParameterInt>("METHOD_TYPE", "Method Type", 0, 1, 0));
-
-    // Twój NOWY parametr - Cutoff do filtra
+    layout.add(std::make_unique<juce::AudioParameterInt>("METHOD_TYPE", "Method Type", 0, 4, 0));
     juce::NormalisableRange<float> cutoffRange(20.0f, 20000.0f, 1.0f);
 
     cutoffRange.setSkewForCentre(1000.0f);
@@ -41,6 +38,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
     layout.add(std::make_unique<juce::AudioParameterFloat>("F_RELEASE", "F. Release", 0.01f, 5.0f, 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("ENVELOPE", "Envelope", -1.0f, 1.0f, 0.5f));
     layout.add(std::make_unique<juce::AudioParameterFloat>("VOLUME", "Master Vol", 0.0f, 1.0f, 0.8f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("NOISE", "Noise", 0.0f, 1.0f, 0.0f));
 
     return layout;
 }
@@ -210,6 +209,8 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     filterAdrsParams.sustain = *apvts.getRawParameterValue("F_SUSTAIN");
     filterAdrsParams.release = *apvts.getRawParameterValue("F_RELEASE");
     filterAdsr.setParameters(filterAdrsParams);
+
+    float noise = *apvts.getRawParameterValue("NOISE");
     
   
     for (const auto metadata : midiMessages)
@@ -232,6 +233,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 integrator = 0.0f;
                 integrator2 = 0.0f;
                 dcBlockerState = 0.0f;
+                dpwState = 0.0f;
             }
 
             adsr.noteOn();
@@ -262,6 +264,8 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     float currentFilterEnv = 0.0f;
     float glideTime = *apvts.getRawParameterValue("GLIDE");
     float glideCoeff = (glideTime > 0.001f) ? std::exp(-1.0f / (glideTime * getSampleRate())) : 0.0f;
+
+
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
         currentFrequency = glideCoeff * currentFrequency + (1.0f - glideCoeff) * Frequency;
@@ -273,6 +277,8 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         if (adsr.isActive())
         {
 
+
+            float N_harmonics = std::floor((getSampleRate() / 2.0f) / currentFrequency);
             float b1 = getBlit(Phase, P, M);
             float b2 = getBlit(fmodf(Phase + 0.5f, 1.0f), P, M);
             //user choice
@@ -288,6 +294,27 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     integrator = blit_centered + (R * integrator);
                     sampleValue = dcBlocker(integrator);
                 }
+                else if (methodType == 2) // dsf saw
+                {
+                    float summation_saw = getDsf(Phase, N_harmonics);
+                    integrator = summation_saw + (R * integrator);
+                    sampleValue = dcBlocker(integrator) * (2.0f / P);
+                }
+                else if (methodType == 3) // polyBLEP saw
+                {
+
+                    float naiveSaw = (Phase * 2.0f) - 1.0f;
+                    sampleValue = naiveSaw - getBlep(Phase, phaseDelta);
+                }
+                else if (methodType == 4) // dpw saw
+                {
+                    float trivialSaw = (Phase * 2.0f) - 1.0f;
+                    float parabola = trivialSaw * trivialSaw;
+                    float diff = parabola - dpwState;
+                    dpwState = parabola;
+                    sampleValue = diff * (getSampleRate() / (4.0f * currentFrequency));
+                }
+
 
             }
             else if (waveType == 1) //tri
@@ -306,6 +333,33 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     float cleanSquare = dcBlocker(integrator);
                     integrator2 = cleanSquare + (R * integrator2);
                     sampleValue = integrator2 * (4.0f / P);
+                }
+                else if (methodType == 2) // dsf tri
+                {
+                    float dsf_1 = getDsf(Phase, N_harmonics);
+                    float dsf_2 = getDsf(fmodf(Phase + 0.5f, 1.0f), N_harmonics);
+
+                    float summation_sqr = dsf_1 - dsf_2;
+                    integrator = summation_sqr + (R * integrator);
+                    float square_val = dcBlocker(integrator) * (2.0f / P);
+                    integrator2 = square_val + (R * integrator2);
+                    sampleValue = dcBlocker(integrator2) * (4.0f / P);
+                }
+                else if (methodType == 3) // polyBLEP tri
+                {
+                    float naiveTri = 2.0f * std::abs(2.0f * Phase - 1.0f) - 1.0f;
+                    float blamp1 = getBlamp(Phase, phaseDelta);
+                    float blamp2 = getBlamp(fmodf(Phase + 0.5f, 1.0f), phaseDelta);
+                    sampleValue = naiveTri - 8.0f * phaseDelta * blamp1 + 8.0f * phaseDelta * blamp2;
+                }
+                else if (methodType == 4) // dpw tri
+                {
+                    float intTri = (Phase < 0.5f) ?
+                        (2.0f * Phase * Phase - Phase + 0.5f) :
+                        (-2.0f * Phase * Phase + 3.0f * Phase - 0.5f);
+                    float diff = intTri - dpwState;
+                    dpwState = intTri;
+                    sampleValue = diff * (getSampleRate() / currentFrequency);
                 }
             }
             else if (waveType == 2) //sqr
@@ -327,8 +381,35 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     integrator = bp_blit + (R * integrator);
                     sampleValue = dcBlocker(integrator);
                 }
+                else if (methodType == 2) // dsf tri
+                {
+                    float dsf_1 = getDsf(Phase, N_harmonics);
+                    float dsf_2 = getDsf(fmodf(Phase + 0.5f, 1.0f), N_harmonics);
+
+                    float summation_sqr = dsf_1 - dsf_2;
+                    integrator = summation_sqr + (R * integrator);
+                    sampleValue = dcBlocker(integrator) * (2.0f / P);
+                }
+                else if (methodType == 3) // polyBLEP tri
+                {
+                    float naiveSqr = (Phase < 0.5f) ? 1.0f : -1.0f;
+                    float blep1 = getBlep(Phase, phaseDelta);
+                    float blep2 = getBlep(fmodf(Phase + 0.5f, 1.0f), phaseDelta);
+                    sampleValue = naiveSqr + blep1 - blep2;
+                }
+                else if (methodType == 4) // dpw tri
+                {
+                    float saw1 = (Phase * 2.0f) - 1.0f;
+                    float saw2 = (fmodf(Phase + 0.5f, 1.0f) * 2.0f) - 1.0f;
+                    float parabolaSq = (saw1 * saw1) - (saw2 * saw2);
+                    float diff = parabolaSq - dpwState;
+                    dpwState = parabolaSq;
+                    sampleValue = diff * (getSampleRate() / (4.0f * currentFrequency));
+                }
 
             }
+            float noiseSample = (juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f) * noise;
+            sampleValue += noiseSample;
             sampleValue *= 0.2f;
             sampleValue *= adsr.getNextSample();
             currentFilterEnv = filterAdsr.getNextSample();
@@ -359,7 +440,7 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     float fDepth = *apvts.getRawParameterValue("ENVELOPE");
     lfoPhase += lfoRate * (buffer.getNumSamples() / getSampleRate());
     if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
-    float lfoValue = std::sin(lfoPhase * juce::MathConstants<float>::twoPi);
+    float lfoValue = std::sin(lfoPhase * juce::MathConstants<float>::twoPi);    
     float modulatedCutoff = cutoffFreq * (1.0f + (lfoValue * lfoDepth * 0.9f));
     modulatedCutoff += (currentFilterEnv * fDepth * 10000.0f);
     float safeCutoff = juce::jlimit(20.0f, 20000.0f, modulatedCutoff);
