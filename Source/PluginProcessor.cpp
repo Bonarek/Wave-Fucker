@@ -228,12 +228,14 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             Frequency = juce::MidiMessage::getMidiNoteInHertz(noteNumber);
             if (activeNotes.size() == 1)
             {
-
-                Phase = 0.0f;
-                integrator = 0.0f;
-                integrator2 = 0.0f;
-                dcBlockerState = 0.0f;
-                dpwState = 0.0f;
+                if (!adsr.isActive())
+                {
+                    Phase = 0.0f;
+                    integrator = 0.0f;
+                    integrator2 = 0.0f;
+                    dcBlockerState = 0.0f;
+                    dpwState = 0.0f;
+                }
             }
 
             adsr.noteOn();
