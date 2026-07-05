@@ -8,7 +8,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor(WaveFuckerAudioProcessor& p)
+CartoonSynthAudioProcessorEditor::CartoonSynthAudioProcessorEditor(CartoonSynthAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p), peakMeter(p)
 {
     setSize(800, 600);
@@ -104,18 +104,18 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor(WaveFuckerAudioPr
     startTimer(30);
 }
 
-WaveFuckerAudioProcessorEditor::~WaveFuckerAudioProcessorEditor()
+CartoonSynthAudioProcessorEditor::~CartoonSynthAudioProcessorEditor()
 {
 
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
     stopTimer();
 }
 
-void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
+void CartoonSynthAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::black.brighter(0.1f));
 
-    juce::Image bg = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_background_png, BinaryData::WaveFucker_background_pngSize);
+    juce::Image bg = juce::ImageCache::getFromMemory(BinaryData::CartoonSynth_background_png, BinaryData::CartoonSynth_background_pngSize);
     if (bg.isValid())
     {
         g.drawImageAt(bg, 0, 0);
@@ -217,7 +217,7 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
 }
 
 
-void WaveFuckerAudioProcessorEditor::resized()
+void CartoonSynthAudioProcessorEditor::resized()
 {
 
     sawButton.setBounds(30, 90, 90, 25);
@@ -252,7 +252,7 @@ void WaveFuckerAudioProcessorEditor::resized()
 
     noiseSlider.setBounds(705, 280, 60, 60);
 }
-void WaveFuckerAudioProcessorEditor::timerCallback()
+void CartoonSynthAudioProcessorEditor::timerCallback()
 {
     repaint();
 }

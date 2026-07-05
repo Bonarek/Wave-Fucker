@@ -5,7 +5,7 @@
 class PeakMeter : public juce::Component, private juce::Timer
 {
 public:
-    PeakMeter(WaveFuckerAudioProcessor& p) : processor(p) { startTimerHz(30); }
+    PeakMeter(CartoonSynthAudioProcessor& p) : processor(p) { startTimerHz(30); }
 
     void paint(juce::Graphics& g) override
     {
@@ -30,5 +30,5 @@ public:
     void timerCallback() override { repaint(); }
 
 private:
-    WaveFuckerAudioProcessor& processor;
+    CartoonSynthAudioProcessor& processor;
 };

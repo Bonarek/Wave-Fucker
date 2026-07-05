@@ -16,10 +16,10 @@ class CartoonLookAndFeel : public juce::LookAndFeel_V4
 public:
     CartoonLookAndFeel()
     {
-        knobImage = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_knob_png, BinaryData::WaveFucker_knob_pngSize);
-        checkImage = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_check_png, BinaryData::WaveFucker_check_pngSize);
-        volTrackImage = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_volume1_png, BinaryData::WaveFucker_volume1_pngSize);
-        volThumbImage = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_volume2_png, BinaryData::WaveFucker_volume2_pngSize);
+        knobImage = juce::ImageCache::getFromMemory(BinaryData::CartoonSynth_knob_png, BinaryData::CartoonSynth_knob_pngSize);
+        checkImage = juce::ImageCache::getFromMemory(BinaryData::CartoonSynth_check_png, BinaryData::CartoonSynth_check_pngSize);
+        volTrackImage = juce::ImageCache::getFromMemory(BinaryData::CartoonSynth_volume1_png, BinaryData::CartoonSynth_volume1_pngSize);
+        volThumbImage = juce::ImageCache::getFromMemory(BinaryData::CartoonSynth_volume2_png, BinaryData::CartoonSynth_volume2_pngSize);
     
         setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::black); 
         setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);       
@@ -125,19 +125,19 @@ private:
 
 
 
-class WaveFuckerAudioProcessorEditor : public juce::AudioProcessorEditor,
+class CartoonSynthAudioProcessorEditor : public juce::AudioProcessorEditor,
     public juce::Timer
 {
 public:
-    WaveFuckerAudioProcessorEditor(WaveFuckerAudioProcessor&);
-    ~WaveFuckerAudioProcessorEditor() override;
+    CartoonSynthAudioProcessorEditor(CartoonSynthAudioProcessor&);
+    ~CartoonSynthAudioProcessorEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
     void timerCallback() override;
 
 private:
-    WaveFuckerAudioProcessor& audioProcessor;
+    CartoonSynthAudioProcessor& audioProcessor;
 
     CartoonLookAndFeel cartoonStyle;
 
@@ -156,5 +156,5 @@ private:
         attAttach, decAttach, susAttach, relAttach,
         fAttAttach, fDecAttach, fSusAttach, fRelAttach, fDepAttach, noiseAttachment, volAttach;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaveFuckerAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CartoonSynthAudioProcessorEditor)
 };

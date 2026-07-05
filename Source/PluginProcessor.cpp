@@ -7,7 +7,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout CartoonSynthAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
@@ -42,7 +42,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout WaveFuckerAudioProcessor::cr
 }
 
 //==============================================================================
-WaveFuckerAudioProcessor::WaveFuckerAudioProcessor()
+CartoonSynthAudioProcessor::CartoonSynthAudioProcessor()
     :
 #ifndef JucePlugin_PreferredChannelConfigurations
     AudioProcessor(BusesProperties()
@@ -65,21 +65,21 @@ WaveFuckerAudioProcessor::WaveFuckerAudioProcessor()
     std::fill(std::begin(fftMaginitude), std::end(fftMaginitude), 0.0f);
 }
 
-WaveFuckerAudioProcessor::~WaveFuckerAudioProcessor() {}
+CartoonSynthAudioProcessor::~CartoonSynthAudioProcessor() {}
 
-const juce::String WaveFuckerAudioProcessor::getName() const { return JucePlugin_Name; }
-bool WaveFuckerAudioProcessor::acceptsMidi() const { return true; }
-bool WaveFuckerAudioProcessor::producesMidi() const { return true; }
-bool WaveFuckerAudioProcessor::isMidiEffect() const { return false; }
-double WaveFuckerAudioProcessor::getTailLengthSeconds() const { return 0.0; }
-int WaveFuckerAudioProcessor::getNumPrograms() { return 1; }
-int WaveFuckerAudioProcessor::getCurrentProgram() { return 0; }
-void WaveFuckerAudioProcessor::setCurrentProgram(int index) {}
-const juce::String WaveFuckerAudioProcessor::getProgramName(int index) { return {}; }
-void WaveFuckerAudioProcessor::changeProgramName(int index, const juce::String& newName) {}
+const juce::String CartoonSynthAudioProcessor::getName() const { return JucePlugin_Name; }
+bool CartoonSynthAudioProcessor::acceptsMidi() const { return true; }
+bool CartoonSynthAudioProcessor::producesMidi() const { return true; }
+bool CartoonSynthAudioProcessor::isMidiEffect() const { return false; }
+double CartoonSynthAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+int CartoonSynthAudioProcessor::getNumPrograms() { return 1; }
+int CartoonSynthAudioProcessor::getCurrentProgram() { return 0; }
+void CartoonSynthAudioProcessor::setCurrentProgram(int index) {}
+const juce::String CartoonSynthAudioProcessor::getProgramName(int index) { return {}; }
+void CartoonSynthAudioProcessor::changeProgramName(int index, const juce::String& newName) {}
 
 //==============================================================================
-void WaveFuckerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void CartoonSynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     juce::dsp::ProcessSpec spec{ sampleRate, (juce::uint32)samplesPerBlock, 2 };
     dspChain.get<0>().setMode(juce::dsp::LadderFilterMode::LPF12);
@@ -95,6 +95,9 @@ void WaveFuckerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     currentM = 0.0f;
     currentN = 0.0f;
 
+    scopeIndex = 0;
+    scopeStep = 0;
+
     softClipper.functionToUse = [](float x)
     {
         return std::tanh(x);
@@ -102,10 +105,10 @@ void WaveFuckerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     softClipper.prepare(spec);
 }
 
-void WaveFuckerAudioProcessor::releaseResources() {}
+void CartoonSynthAudioProcessor::releaseResources() {}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool WaveFuckerAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool CartoonSynthAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
 #if JucePlugin_IsMidiEffect
     juce::ignoreUnused(layouts);
@@ -123,7 +126,7 @@ bool WaveFuckerAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts
 }
 #endif
 
-void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void CartoonSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
@@ -367,7 +370,8 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     float lfoValue = std::sin(lfoPhase * juce::MathConstants<float>::twoPi);
 
     float modulatedCutoff = cutoffFreq * (1.0f + (lfoValue * lfoDepth * 0.9f));
-    modulatedCutoff += (currentFilterEnv * fDepth * 10000.0f);
+    float shapedDepth = fDepth * std::abs(fDepth);
+    modulatedCutoff += (currentFilterEnv * shapedDepth * 8000.0f);
     float safeCutoff = juce::jlimit(20.0f, 20000.0f, modulatedCutoff);
 
     dspChain.get<0>().setCutoffFrequencyHz(safeCutoff);
@@ -383,9 +387,17 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     {
         float filteredSample = channelData[sample];
 
-        if (sample < 256)
+        scopeStep++;
+        if (scopeStep >= 8)
         {
-            visualBuffer[sample] = filteredSample;
+            scopeStep = 0;
+            visualBuffer[scopeIndex] = filteredSample;
+            scopeIndex++;
+
+            if (scopeIndex >= 256)
+            {
+                scopeIndex = 0;
+            }
         }
 
         fftData[fftIndex] = filteredSample;
@@ -414,17 +426,17 @@ void WaveFuckerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     rightChannelLevel = buffer.getMagnitude(1, 0, buffer.getNumSamples());
 }
 
-bool WaveFuckerAudioProcessor::hasEditor() const { return true; }
-juce::AudioProcessorEditor* WaveFuckerAudioProcessor::createEditor() { return new WaveFuckerAudioProcessorEditor(*this); }
+bool CartoonSynthAudioProcessor::hasEditor() const { return true; }
+juce::AudioProcessorEditor* CartoonSynthAudioProcessor::createEditor() { return new CartoonSynthAudioProcessorEditor(*this); }
 
-void WaveFuckerAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+void CartoonSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
 
-void WaveFuckerAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+void CartoonSynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
     if (xmlState.get() != nullptr)
@@ -438,5 +450,5 @@ void WaveFuckerAudioProcessor::setStateInformation(const void* data, int sizeInB
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new WaveFuckerAudioProcessor();
+    return new CartoonSynthAudioProcessor();
 }

@@ -13,7 +13,7 @@
 //==============================================================================
 /**
 */
-class WaveFuckerAudioProcessor : public juce::AudioProcessor
+class CartoonSynthAudioProcessor : public juce::AudioProcessor
 {
 public:
 
@@ -28,8 +28,8 @@ public:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     //==============================================================================
-    WaveFuckerAudioProcessor();
-    ~WaveFuckerAudioProcessor() override;
+    CartoonSynthAudioProcessor();
+    ~CartoonSynthAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
@@ -158,5 +158,8 @@ private:
         return output;
     }
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaveFuckerAudioProcessor)
+    int scopeIndex = 0;
+    int scopeStep = 0;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CartoonSynthAudioProcessor)
 };
