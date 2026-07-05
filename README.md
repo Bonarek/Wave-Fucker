@@ -58,6 +58,8 @@ To build this plugin from the source code, you will need:
 - [x] Add ADSR Cutoff
 - [x] Add Glide 
 
+<img width="800" height="601" alt="5e099c65-8d87-47b3-a68f-f35f808fb237" src="https://github.com/user-attachments/assets/c1a3ea88-2311-4221-b6c0-3f35fbdd07b9" />
+
 ### 1. Clone the Repository
 Open your terminal or command prompt and run the following commands to clone the project:
 ```bash
