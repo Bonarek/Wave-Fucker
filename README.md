@@ -14,7 +14,7 @@ A plugin synthesizer built with the JUCE framework.
 ## Roadmap / To-Do:
 - [x] Add waveform selection (Saw/Tri/Sqr)
 - [ ] Optimize buffer memory usage
-- [ ] Finalize UI branding and aesthetics
+- [x] Finalize UI branding and aesthetics
 - [x] Add LPF (Cutoff)
 - [x] Add Amplifier
 - [x] Add LFO (Low Frewuency Oscilator)
