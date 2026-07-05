@@ -1,7 +1,7 @@
 # WaveFucker 
 **by BonarSound**
 
-A rebellious, analog-modeled polyphonic synthesizer plugin built with the JUCE framework. 
+A rebellious, analog-modeled monophonic(maybe in the future polyphonic) synthesizer plugin built with the JUCE framework. 
 
 WaveFucker combines a unique, hand-drawn "cartoon" aesthetic with serious, heavy-duty DSP under the hood. It serves not only as a gritty, character-rich instrument but also as a living showcase of synthesizer algorithm evolution—featuring everything from raw, naive waveforms to advanced mathematical anti-aliasing techniques.
 
