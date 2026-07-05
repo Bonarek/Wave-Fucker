@@ -1,16 +1,16 @@
-# WaveFucker 
+# CartoonSynth 
 **by BonarSound**
 
 A rebellious, analog-modeled monophonic(maybe in the future polyphonic) synthesizer plugin built with the JUCE framework. 
 
-WaveFucker combines a unique, hand-drawn "cartoon" aesthetic with serious, heavy-duty DSP under the hood. It serves not only as a gritty, character-rich instrument but also as a living showcase of synthesizer algorithm evolution—featuring everything from raw, naive waveforms to advanced mathematical anti-aliasing techniques.
+CartoonSynth  combines a unique, hand-drawn "cartoon" aesthetic with serious, heavy-duty DSP under the hood. It serves not only as a gritty, character-rich instrument but also as a living showcase of synthesizer algorithm evolution—featuring everything from raw, naive waveforms to advanced mathematical anti-aliasing techniques.
 
 ---
 
 ## Key Features
 
 ### Oscillators & DSP Engines
-WaveFucker features 3 core waveforms (Sawtooth, Triangle, Square) powered by **5 selectable synthesis methods**, allowing you to choose the exact sonic character and CPU footprint:
+CartoonSynth  features 3 core waveforms (Sawtooth, Triangle, Square) powered by **5 selectable synthesis methods**, allowing you to choose the exact sonic character and CPU footprint:
 * **Naive:** Raw, digital, and fully aliased for lo-fi grit.
 * **BLIT** (Band-Limited Impulse Train): Classic analog modeling with phase-synced harmonic generation.
 * **DSF** (Discrete Summation Formulas): Complex harmonic equations for pure, rich tones.
@@ -61,8 +61,8 @@ To build this plugin from the source code, you will need:
 ### 1. Clone the Repository
 Open your terminal or command prompt and run the following commands to clone the project:
 ```bash
-git clone [https://github.com/Bonarek/WaveFucker.git](https://github.com/Bonarek/WaveFucker.git)
-cd WaveFucker
+git clone [https://github.com/Bonarek/CartoonSynth .git](https://github.com/Bonarek/CartoonSynth .git)
+cd CartoonSynth 
 
 
 
