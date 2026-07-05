@@ -5,6 +5,18 @@
               pluginManufacturer="BonarSound">
   <MAINGROUP id="nnL0bV" name="WaveFucker">
     <GROUP id="{B5ADA7E8-4A8E-9543-105D-E97927E9D478}" name="Source">
+      <GROUP id="{7A5ACD90-D190-2034-4D64-9D68FD48E9A1}" name="Resources">
+        <FILE id="j3jHrM" name="WaveFucker_background.png" compile="0" resource="1"
+              file="Source/WaveFucker_background.png"/>
+        <FILE id="hhxbIG" name="WaveFucker_check.png" compile="0" resource="1"
+              file="Source/WaveFucker_check.png"/>
+        <FILE id="VxB0Zy" name="WaveFucker_knob.png" compile="0" resource="1"
+              file="Source/WaveFucker_knob.png"/>
+        <FILE id="W7XEbx" name="WaveFucker_volume1.png" compile="0" resource="1"
+              file="Source/WaveFucker_volume1.png"/>
+        <FILE id="EdioM9" name="WaveFucker_volume2.png" compile="0" resource="1"
+              file="Source/WaveFucker_volume2.png"/>
+      </GROUP>
       <FILE id="MYRIUO" name="PeakMeter.h" compile="0" resource="0" file="Source/PeakMeter.h"/>
       <FILE id="zhZ9wx" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>

@@ -1,8 +1,6 @@
 /*
   ==============================================================================
-
     This file contains the basic framework code for a JUCE plugin editor.
-
   ==============================================================================
 */
 
@@ -10,13 +8,17 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), peakMeter(p)
+WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor(WaveFuckerAudioProcessor& p)
+    : AudioProcessorEditor(&p), audioProcessor(p), peakMeter(p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (800, 600);
+    setSize(800, 600);
     addAndMakeVisible(peakMeter);
+
+
+    juce::LookAndFeel::setDefaultLookAndFeel(&cartoonStyle);
+
+
+    cartoonStyle.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
     sawButton.setRadioGroupId(1);
     triButton.setRadioGroupId(1);
@@ -24,7 +26,6 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     addAndMakeVisible(sqrButton);
     addAndMakeVisible(sawButton);
     addAndMakeVisible(triButton);
-
 
     naiveButton.setRadioGroupId(2);
     blitButton.setRadioGroupId(2);
@@ -38,12 +39,12 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     addAndMakeVisible(dpwButton);
 
     auto updateWave = [this](int value) {
-        if(auto * param = audioProcessor.apvts.getParameter("WAVE_TYPE"))
-            param->setValueNotifyingHost(param->convertTo0to1(value)); 
+        if (auto* param = audioProcessor.apvts.getParameter("WAVE_TYPE"))
+            param->setValueNotifyingHost(param->convertTo0to1(value));
     };
-    sawButton.onClick = [updateWave] { updateWave(0); }; // 0
-    triButton.onClick = [updateWave] { updateWave(1); }; // 1
-    sqrButton.onClick = [updateWave] { updateWave(2); }; // 2
+    sawButton.onClick = [updateWave] { updateWave(0); };
+    triButton.onClick = [updateWave] { updateWave(1); };
+    sqrButton.onClick = [updateWave] { updateWave(2); };
 
     auto updateMethod = [this](int value) {
         if (auto* param = audioProcessor.apvts.getParameter("METHOD_TYPE"))
@@ -58,6 +59,7 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
     auto setupSlider = [this](juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attach, const juce::String& paramID) {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
         addAndMakeVisible(slider);
         attach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, paramID, slider);
@@ -82,8 +84,7 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
     setupSlider(noiseSlider, noiseAttachment, "NOISE");
 
     volSlider.setSliderStyle(juce::Slider::LinearVertical);
-
-    volSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0); 
+    volSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     addAndMakeVisible(volSlider);
     volAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, "VOLUME", volSlider);
 
@@ -105,41 +106,20 @@ WaveFuckerAudioProcessorEditor::WaveFuckerAudioProcessorEditor (WaveFuckerAudioP
 
 WaveFuckerAudioProcessorEditor::~WaveFuckerAudioProcessorEditor()
 {
+
+    juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
     stopTimer();
 }
 
-//==============================================================================
 void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-    g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
+    g.fillAll(juce::Colours::black.brighter(0.1f));
 
-
-    g.drawText("WaveFucker Synth", 0, 10, 800, 30, juce::Justification::centred);
-
-
-    g.drawText("Cutoff", 260, 80, 70, 30, juce::Justification::centred);
-    g.drawText("Reson", 340, 80, 70, 30, juce::Justification::centred);
-    g.drawText("LFO F", 460, 80, 70, 30, juce::Justification::centred);
-    g.drawText("LFO D", 540, 80, 70, 30, juce::Justification::centred);
-    g.drawText("Glide", 680, 80, 70, 30, juce::Justification::centred);
-
-
-    g.drawText("Amp A", 40, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Amp D", 120, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Amp S", 200, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Amp R", 280, 220, 70, 30, juce::Justification::centred);
-
-
-    g.drawText("Filt A", 400, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Filt D", 480, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Filt S", 560, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Filt R", 640, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Env Dep", 720, 220, 70, 30, juce::Justification::centred);
-    g.drawText("Volume", 730, 120, 60, 30, juce::Justification::centred);   
-
-    g.drawText("Noise", 680, 220, 70, 30, juce::Justification::centred);
+    juce::Image bg = juce::ImageCache::getFromMemory(BinaryData::WaveFucker_background_png, BinaryData::WaveFucker_background_pngSize);
+    if (bg.isValid())
+    {
+        g.drawImageAt(bg, 0, 0);
+    }
 
     juce::Rectangle<float> area(0.0f, 400.0f, 800.0f, 200.0f);
     auto leftArea = area.removeFromLeft(400.0f);
@@ -153,27 +133,22 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawRect(rightArea);
 
     g.setFont(10.0f);
-
     float midY = leftArea.getY() + leftArea.getHeight() * 0.5f;
-    float ampScale = leftArea.getHeight() * 0.5f; 
+    float ampScale = leftArea.getHeight() * 0.5f;
 
     std::vector<float> amplitudes = { 1.0f, 0.5f, 0.0f, -0.5f, -1.0f };
     for (float amp : amplitudes)
     {
         float y = midY - (amp * ampScale);
-
         g.setColour(juce::Colours::grey.withAlpha(0.3f));
         g.drawLine(leftArea.getX(), y, leftArea.getRight(), y);
-
         g.setColour(juce::Colours::lime);
-
         g.drawText(juce::String(amp, 1), leftArea.getX() + 2, y + 2, 30, 10, juce::Justification::left);
     }
 
     for (int i = 1; i < 4; ++i)
     {
         float x = leftArea.getX() + i * (leftArea.getWidth() / 4.0f);
-
         g.setColour(juce::Colours::grey.withAlpha(0.3f));
         g.drawLine(x, leftArea.getY(), x, leftArea.getBottom());
     }
@@ -181,14 +156,12 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     for (int i = 0; i <= 4; ++i)
     {
         float y = rightArea.getY() + i * (rightArea.getHeight() / 4.0f);
-        g.setColour(juce::Colours::grey.withAlpha(0.3f)); 
+        g.setColour(juce::Colours::grey.withAlpha(0.3f));
         g.drawLine(rightArea.getX(), y, rightArea.getRight(), y);
-
-        g.setColour(juce::Colours::lime); 
+        g.setColour(juce::Colours::lime);
         int dbVal = 0 - (i * 20);
         g.drawText(juce::String(dbVal) + " dB", rightArea.getX() + 2, y + 2, 40, 10, juce::Justification::left);
     }
-
 
     float sampleRateGrid = 48000.0f;
     float minFreqGrid = 20.0f;
@@ -200,25 +173,16 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     for (size_t i = 0; i < gridFrequencies.size(); ++i)
     {
         float freq = gridFrequencies[i];
-        float x = rightArea.getX() + juce::jmap(std::log10(freq),
-            std::log10(minFreqGrid),
-            std::log10(maxFreqGrid),
-            0.0f,
-            rightArea.getWidth());
-
-        g.setColour(juce::Colours::grey.withAlpha(0.3f)); 
+        float x = rightArea.getX() + juce::jmap(std::log10(freq), std::log10(minFreqGrid), std::log10(maxFreqGrid), 0.0f, rightArea.getWidth());
+        g.setColour(juce::Colours::grey.withAlpha(0.3f));
         g.drawLine(x, rightArea.getY(), x, rightArea.getBottom());
-
-        g.setColour(juce::Colours::lime); 
+        g.setColour(juce::Colours::lime);
         g.drawText(gridLabels[i], x - 15, rightArea.getBottom() - 15, 30, 10, juce::Justification::centred);
     }
 
-
     juce::Path p;
-
     for (int i = 0; i < 256; ++i)
     {
-        //Mapping
         float x = leftArea.getX() + (i / 255.0f) * leftArea.getWidth();
         float midY_osc = leftArea.getY() + leftArea.getHeight() * 0.5f;
         float y = midY_osc - (audioProcessor.visualBuffer[i] * (leftArea.getHeight() * 0.5f));
@@ -231,7 +195,7 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::limegreen);
     g.strokePath(p, juce::PathStrokeType(1.5f));
 
-    g.setColour(juce::Colours::limegreen); 
+    g.setColour(juce::Colours::limegreen);
     float sampleRate = 48000.0f;
     int fftSize = 1024;
     float minFreq = 20.0f;
@@ -242,58 +206,53 @@ void WaveFuckerAudioProcessorEditor::paint(juce::Graphics& g)
         float currentFreq = ((float)i / (float)(fftSize / 2)) * maxFreq;
         if (currentFreq < minFreq) continue;
 
-        float xPos = rightArea.getX() + juce::jmap(std::log10(currentFreq),
-            std::log10(minFreq),
-            std::log10(maxFreq),
-            0.0f,
-            rightArea.getWidth());
-
+        float xPos = rightArea.getX() + juce::jmap(std::log10(currentFreq), std::log10(minFreq), std::log10(maxFreq), 0.0f, rightArea.getWidth());
         float nextFreq = ((float)(i + 1) / (float)(fftSize / 2)) * maxFreq;
-        float nextXPos = rightArea.getX() + juce::jmap(std::log10(nextFreq),
-            std::log10(minFreq),
-            std::log10(maxFreq),
-            0.0f,
-            rightArea.getWidth());
+        float nextXPos = rightArea.getX() + juce::jmap(std::log10(nextFreq), std::log10(minFreq), std::log10(maxFreq), 0.0f, rightArea.getWidth());
 
         float width = nextXPos - xPos;
         float barHeight = std::max(1.0f, audioProcessor.fftMaginitude[i] * rightArea.getHeight());
         g.fillRect(xPos, rightArea.getBottom() - barHeight, width + 0.5f, barHeight);
     }
-
 }
 
 
 void WaveFuckerAudioProcessorEditor::resized()
 {
-    sawButton.setBounds(40, 100, 100, 25);
-    triButton.setBounds(40, 130, 100, 25);
-    sqrButton.setBounds(40, 160, 100, 25);
 
-    naiveButton.setBounds(150, 100, 100, 25);
-    blitButton.setBounds(150, 130, 100, 25);
-    dsfButton.setBounds(150, 160, 100, 25);
-    polyBlepButton.setBounds(150, 190, 100, 25);
-    dpwButton.setBounds(150, 220, 100, 25);
+    sawButton.setBounds(30, 90, 90, 25);
+    triButton.setBounds(30, 120, 90, 25);
+    sqrButton.setBounds(30, 150, 90, 25);
 
-    cutoffSlider.setBounds(260, 110, 70, 70);
-    resSlider.setBounds(340, 110, 70, 70);
-    lfoFreqSlider.setBounds(460, 110, 70, 70);
-    lfoDepthSlider.setBounds(540, 110, 70, 70);
-    glideSlider.setBounds(680, 110, 70, 70);
+    naiveButton.setBounds(130, 90, 100, 25);
+    blitButton.setBounds(130, 120, 100, 25);
+    dsfButton.setBounds(130, 150, 100, 25);
+    polyBlepButton.setBounds(130, 180, 100, 25);
+    dpwButton.setBounds(130, 210, 100, 25);
 
-    attackSlider.setBounds(40, 250, 70, 70);
-    decaySlider.setBounds(120, 250, 70, 70);
-    sustainSlider.setBounds(200, 250, 70, 70);
-    releaseSlider.setBounds(280, 250, 70, 70);
+    cutoffSlider.setBounds(260, 110, 60, 60);
+    resSlider.setBounds(330, 110, 60, 60);
+    lfoFreqSlider.setBounds(410, 110, 60, 60);
+    lfoDepthSlider.setBounds(480, 110, 60, 60);
+    glideSlider.setBounds(560, 110, 60, 60);
 
-    fAttackSlider.setBounds(400, 250, 70, 70);
-    fDecaySlider.setBounds(480, 250, 70, 70);
-    fSustainSlider.setBounds(560, 250, 70, 70);
-    fReleaseSlider.setBounds(640, 250, 70, 70);
-    fDepthSlider.setBounds(720, 250, 70, 70);
+    volSlider.setBounds(650, 110, 60, 60);
+    peakMeter.setBounds(730, 110, 30, 60);
 
-    volSlider.setBounds(730, 150, 60, 60);
-    peakMeter.setBounds(745, 50, 30, 60);
-    noiseSlider.setBounds(680, 250, 70, 70);
+    attackSlider.setBounds(30, 280, 60, 60);
+    decaySlider.setBounds(100, 280, 60, 60);
+    sustainSlider.setBounds(170, 280, 60, 60);
+    releaseSlider.setBounds(240, 280, 60, 60);
+
+    fAttackSlider.setBounds(330, 280, 60, 60);
+    fDecaySlider.setBounds(400, 280, 60, 60);
+    fSustainSlider.setBounds(470, 280, 60, 60);
+    fReleaseSlider.setBounds(540, 280, 60, 60);
+    fDepthSlider.setBounds(610, 280, 60, 60);
+
+    noiseSlider.setBounds(705, 280, 60, 60);
 }
-    
+void WaveFuckerAudioProcessorEditor::timerCallback()
+{
+    repaint();
+}
