@@ -46,6 +46,7 @@ To build this plugin from the source code, you will need:
 - [x] DSF method implementation
 - [x] PolyBLEEP method implementation
 - [x] DPW method implementation
+- [ ] Add Polysynth method implementation
 
 ## Roadmap / To-Do:
 - [x] Add waveform selection (Saw/Tri/Sqr)
